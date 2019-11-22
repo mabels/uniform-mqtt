@@ -1,0 +1,26 @@
+{
+  "name": "deconz2mqtt",
+  "version": "1.0.0",
+  "description": "Two Maps Deconz to MQTT-Broker",
+  "main": "index.js",
+  "author": "Meno Abels",
+  "license": "AFL",
+  "dependencies": {
+    "mqtt": "^3.0.0",
+    "rxjs": "^6.5.3",
+    "typescript": "^3.7.2",
+    "uuid": "^3.3.3",
+    "winston": "^3.2.1",
+    "ws": "^3.3.3"
+  },
+  "devDependencies": {
+    "@types/jest": "^24.0.23",
+    "@types/lodash": "^4.14.149",
+    "@types/uuid": "^3.4.6",
+    "@types/ws": "^6.0.3",
+    "jest": "^24.9.0",
+    "jest-cli": "^24.9.0",
+    "lodash": "^4.17.15",
+    "ts-jest": "^24.1.0"
+  }
+}
