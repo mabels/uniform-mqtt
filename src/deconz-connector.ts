@@ -9,15 +9,15 @@ export interface DeconzMsg {
 }
 
 export interface DeconzConfig {
-  readonly host?: string; 
-  readonly port?: number; 
-  readonly reconnectBackoff?: number; 
+  readonly host?: string;
+  readonly port?: number;
+  readonly reconnectBackoff?: number;
 }
 
 export class DeconzConnector {
   private config?: DeconzConfig;
   private socket?: WebSocket;
-  public readonly connected = new BehaviorSubject(false); 
+  public readonly connected = new BehaviorSubject(false);
   public readonly receiver = new Subject<DeconzMsg>();
 
   private stop() {
@@ -51,19 +51,19 @@ export class DeconzConnector {
     });
   }
 
-  constructor(config: Observable<DeconzConfig>, 
+  constructor(config: Observable<DeconzConfig>,
               private readonly log: winston.Logger) {
     config
       .subscribe((dzConfig: DeconzConfig) => {
         if (_.isEqual(dzConfig, this.config)) {
           log.info('Config Resend but no change required');
-          return; 
+          return;
         }
         if (this.config) {
           this.stop();
         }
         this.config = dzConfig;
-        this.start();  
+        this.start();
       });
   }
 }
