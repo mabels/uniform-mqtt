@@ -17,14 +17,17 @@ export interface LogOptions {
 function buildDstAndTransaction(msg?: SrcTransaction): LogOptions {
   return {
     dst: (msg && msg.src) || '*',
-    transaction: (msg && msg.transaction) || uuid.v4()
+    transaction: (msg && msg.txid) || uuid.v4()
   };
 }
 
-export type LogEmitMsg = Msg<string, 'log.warn'> | Msg<string, 'log.error'>;
+export type LogEmitMsg = 
+    Msg<string, 'log.warn'> 
+  | Msg<string, 'log.info'>
+  | Msg<string, 'log.error'>;
 
-export function LogWarn<E, R>(e: EmitRecv<E, R>, msg: string, srcMsg?: SrcTransaction) {
-  e.emitter.next({
+export function LogWarn<E extends LogEmitMsg, R>(e: EmitRecv<E, R>, msg: string, srcMsg?: SrcTransaction) {
+  e.emit.next({
     src: e.addr,
     ...buildDstAndTransaction(srcMsg),
     type: 'log.warn',
@@ -32,8 +35,17 @@ export function LogWarn<E, R>(e: EmitRecv<E, R>, msg: string, srcMsg?: SrcTransa
   } as unknown as E);
 }
 
-export function LogError<E, R>(e: EmitRecv<E, R>, msg: string, srcMsg?: SrcTransaction) {
-  e.emitter.next({
+export function LogInfo<E extends LogEmitMsg, R>(e: EmitRecv<E, R>, msg: string, srcMsg?: SrcTransaction) {
+  e.emit.next({
+    src: e.addr,
+    ...buildDstAndTransaction(srcMsg),
+    type: 'log.info',
+    payload: msg
+  } as unknown as E);
+}
+
+export function LogError<E extends LogEmitMsg, R>(e: EmitRecv<E, R>, msg: string, srcMsg?: SrcTransaction) {
+  e.emit.next({
     src: e.addr,
     ...buildDstAndTransaction(srcMsg),
     type: 'log.error',

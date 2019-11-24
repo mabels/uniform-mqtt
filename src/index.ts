@@ -1,10 +1,11 @@
-import * as mqtt from 'mqtt';
-import { DeconzConnector } from './deconz-connector';
+import { DeconzConnector } from './deconz/deconz-connector';
 import { Subject } from 'rxjs';
-import { Config } from './config';
+import { Config, DeconzConfigs } from './config';
 import * as winston from 'winston';
 import * as fs from 'fs';
 import { filter, map } from 'rxjs/operators';
+import { MqttConnector } from './mqtt/mqtt-connector';
+import uuid = require('uuid');
 
 const log = winston.createLogger();
 log.add(new winston.transports.Console({
@@ -13,83 +14,52 @@ log.add(new winston.transports.Console({
 
 const config = new Subject<Config>();
 
-const dzc = new DeconzConnector(config
-    .pipe(filter(c => !!c.deconz))
-    .pipe(map(c => c.deconz)), log);
+const dzc = new DeconzConnector();
 
-const mqtt = new MqttConnector(config
-    .pipe(filter(c => !!c.mqtt))
-    .pipe(map(c => c.mqtt)), log);
+const mqtt = new MqttConnector();
 
-config.next(JSON.parse(fs.readFileSync('./config.json').toString()));
+const cfg: Config = JSON.parse(fs.readFileSync('./config.json').toString());
+const my = `main.${uuid.v4()}`;
+for (let deconzCfgKey in (cfg.deconzs || {})) {
+  dzc.recv.next({
+    src: my,
+    dst: dzc.addr,
+    txid: my,
+    type: 'deconz.config.add',
+    payload: cfg.deconzs[deconzCfgKey]
+  });
+}
+for (let mqttCfgKey in (cfg.mqtts || {})) {
+  mqtt.recv.next({
+    src: my,
+    dst: mqtt.addr,
+    txid: my,
+    type: 'mqtt.connector.add',
+    payload: cfg.mqtts[mqttCfgKey]
+  });
+}
 
-// const config = require('./config.json');
-var mqttConnected = false;
-
-const client = mqtt.connect(`mqtt://${config.mqtt.host}:${config.mqtt.port}`, {
-  keepalive: 10000,
-  clientId: "deconz-to-mqtt",
-  username: config.mqtt.username,
-  password: config.mqtt.password
-});
-
-client.on('error', () => {
-  console.log('MQTT connection failure or parsing error');
-  mqttConnected = false;
-});
-
-client.on('offline', () => {
-  console.log('MQTT going offline');
-  mqttConnected = false;
-});
-
-client.on('connect', () => {
-  console.log('MQTT Server connected');
-  mqttConnected = true;
-});
-
-client.on('end', () => {
-  console.log('MQTT shutdown');
-  mqttConnected = false;
-});
-
-client.on('message', (topic,message) => {
-  console.log('onMessageArrived:' + message.payloadString);
-});
-
-socket.on('open', () => {
-  socket.on('message', data => {
-    const sensorData = JSON.parse(data)
-    const sensorId = sensorData.id;
-    const sensor = config.sensors[sensorId];
-    if (sensor === undefined) {
-	    console.log(data);
-      client.publish(`deconz/${sensorData.r}/${sensorData.id}/state`, JSON.stringify({
-	      ...sensorData.state,
-	      type: `${sensorData.event}-${sensorData.e}`,
-	      id: sensorData.uniqueid
-      }));
-      return
-    }
-
-    const topic = `${sensor.topic}`
-    const dataType = `${sensor.data}`
-    const value = sensorData.state[dataType] / sensor.divisor;
-
-    console.log(`topic: ${topic} data: ${value}`)
-
-    if (mqttConnected) {
-      client.publish(topic, `${value}`)
-      console.log("data published");
-    }
-    else {
-      console.log("mqtt not connected.");
+dzc.emit.subscribe(msg => {
+  mqtt.recv.next({
+    src: msg.src,
+    dst: mqtt.addr,
+    txid: my,
+    type: 'mqtt.connector.msg',
+    payload: {
+      topic: ``,
+      message: '' 
     }
   });
 });
 
-socket.on('error', () => {
-  console.log('something has gone wrong');
+mqtt.emit.subscribe(msg => {
+  dzc.recv.next({
+    src: msg.src,
+    dst: dzc.addr,
+    txid: my,
+    type: 'deconz.connector.msg',
+    payload: {
+      uhu: 'xx'
+    }
+  });
 });
-
-console.log('started');

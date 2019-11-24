@@ -10,7 +10,7 @@ export interface Dst {
 }
 
 export interface Transaction {
-  transaction: string;
+  txid: string;
 }
 
 export type SrcTransaction = Src & Transaction;
@@ -67,7 +67,7 @@ export class Subject<C extends Msg<T, TT>, T = unknown, TT = string> implements 
 export function src2dst(src: SrcTransaction): DstTransaction {
   return {
     dst: src.src,
-    transaction: src.transaction || uuid.v4()
+    txid: src.txid || uuid.v4()
   };
 }
 
